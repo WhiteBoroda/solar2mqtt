@@ -419,6 +419,7 @@ void setup()
 
 void loop()
 {
+  static unsigned long lastDebugLog = 0;
   MDNS.update();
   if (Update.isRunning())
   {
@@ -438,12 +439,27 @@ void loop()
       ws.cleanupClients(); // clean unused client connections
       mppClient.loop(); // Call the PI Serial Library loop
       mqttclient.loop();
+
+      // Debug log every 30 seconds
+      if (millis() - lastDebugLog > 30000)
+      {
+        lastDebugLog = millis();
+        writeLog("DEBUG: haDiscovery=%d, haDiscTrigger=%d, jsonSize=%d, currentSize=%d, MQTT=%d",
+                 settings.data.haDiscovery, haDiscTrigger, jsonSize, measureJson(Json), mqttclient.connected());
+      }
+
       if ((haDiscTrigger || settings.data.haDiscovery) && measureJson(Json) > 0 && measureJson(Json) != jsonSize)
       {
+        writeLog("Attempting to send HA Discovery... jsonSize: %d, currentSize: %d", jsonSize, measureJson(Json));
         if (sendHaDiscovery())
         {
           haDiscTrigger = false;
           jsonSize = measureJson(Json);
+          writeLog("HA Discovery completed successfully");
+        }
+        else
+        {
+          writeLog("HA Discovery FAILED!");
         }
       }
     }
@@ -622,22 +638,32 @@ bool sendHaDiscovery()
 {
   if (!connectMQTT())
   {
+    writeLog("HA Discovery: MQTT not connected!");
     return false;
   }
+
+  writeLog("HA Discovery: staticData keys: %d, liveData keys: %d", staticData.size(), liveData.size());
+  writeLog("HA Discovery: Device_Model = '%s'", staticData["Device_Model"].as<String>().c_str());
+
+  String deviceModel = staticData.containsKey("Device_Model") ? staticData["Device_Model"].as<String>() : "Unknown";
+
   String haDeviceDescription = String("\"dev\":") +
                                "{\"ids\":[\"" + mqttClientId + "\"]," +
                                "\"name\":\"" + settings.data.deviceName + "\"," +
                                "\"cu\":\"http://" + WiFi.localIP().toString() + "\"," +
-                               "\"mdl\":\"" + staticData["Device_Model"].as<String>().c_str() + "\"," +
+                               "\"mdl\":\"" + deviceModel + "\"," +
                                "\"mf\":\"SoftWareCrash\"," +
                                "\"sw\":\"" + SOFTWARE_VERSION + "\"" +
                                "}";
 
   char topBuff[128];
+  int staticCount = 0;
+  writeLog("HA Discovery: Publishing static sensors...");
   for (size_t i = 0; i < sizeof haStaticDescriptor / sizeof haStaticDescriptor[0]; i++)
   {
     if (staticData.containsKey(haStaticDescriptor[i][0]))
     {
+      staticCount++;
       String haPayLoad = String("{") +
                          "\"name\":\"" + haStaticDescriptor[i][0] + "\"," +
                          "\"stat_t\":\"" + settings.data.mqttTopic + "/DeviceData/" + haStaticDescriptor[i][0] + "\"," +
@@ -663,11 +689,15 @@ bool sendHaDiscovery()
       mqttclient.loop(); // Process MQTT queue
     }
   }
+  writeLog("HA Discovery: Published %d static sensors", staticCount);
 
+  int liveCount = 0;
+  writeLog("HA Discovery: Publishing live sensors...");
   for (size_t i = 0; i < sizeof haLiveDescriptor / sizeof haLiveDescriptor[0]; i++)
   {
     if (liveData.containsKey(haLiveDescriptor[i][0]))
     {
+      liveCount++;
       String haPayLoad = String("{") +
                          "\"name\":\"" + haLiveDescriptor[i][0] + "\"," +
                          "\"stat_t\":\"" + settings.data.mqttTopic + "/LiveData/" + haLiveDescriptor[i][0] + "\"," +
@@ -693,7 +723,8 @@ bool sendHaDiscovery()
       mqttclient.loop(); // Process MQTT queue
     }
   }
-  writeLog("HA Discovery sent");
+  writeLog("HA Discovery: Published %d live sensors", liveCount);
+  writeLog("HA Discovery: TOTAL sensors published: %d (static: %d, live: %d)", staticCount + liveCount, staticCount, liveCount);
   return true;
 }
 
