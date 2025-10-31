@@ -644,6 +644,18 @@ bool sendHaDiscovery()
 
   writeLog("HA Discovery: staticData keys: %d, liveData keys: %d", staticData.size(), liveData.size());
 
+  // Log what keys we have in staticData
+  if (staticData.size() > 0)
+  {
+    String keys = "";
+    for (JsonPair kv : staticData.as<JsonObject>())
+    {
+      keys += kv.key().c_str();
+      keys += ", ";
+    }
+    writeLog("HA Discovery: staticData contains: %s", keys.c_str());
+  }
+
   // Check if we have enough data from inverter
   if (staticData.size() < 10)
   {
