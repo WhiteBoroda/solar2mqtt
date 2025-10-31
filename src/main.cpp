@@ -438,7 +438,7 @@ void loop()
       ws.cleanupClients(); // clean unused client connections
       mppClient.loop(); // Call the PI Serial Library loop
       mqttclient.loop();
-      if ((haDiscTrigger || settings.data.haDiscovery) && measureJson(Json) > jsonSize)
+      if ((haDiscTrigger || settings.data.haDiscovery) && measureJson(Json) > 0 && measureJson(Json) != jsonSize)
       {
         if (sendHaDiscovery())
         {
@@ -551,7 +551,7 @@ bool sendtoMQTT()
       for (JsonPair jsondat : jsonDev.value().as<JsonObject>())
       {
         sprintf(msgBuffer1, "%s/%s/%s", settings.data.mqttTopic, jsonDev.key().c_str(), jsondat.key().c_str());
-        mqttclient.publish(msgBuffer1, jsondat.value().as<String>().c_str());
+        mqttclient.publish(msgBuffer1, jsondat.value().as<String>().c_str(), true);
       }
     }
     if (mppClient.get.raw.commandAnswer.length() > 0)
@@ -561,32 +561,32 @@ bool sendtoMQTT()
       mppClient.get.raw.commandAnswer = "";
     }
 // RAW
-    mqttclient.publish(topicBuilder(buff, "RAW/Q1"), (mppClient.get.raw.q1).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QPIGS"), (mppClient.get.raw.qpigs).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QPIGS2"), (mppClient.get.raw.qpigs2).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QPIRI"), (mppClient.get.raw.qpiri).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QT"), (mppClient.get.raw.qt).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QET"), (mppClient.get.raw.qet).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QEY"), (mppClient.get.raw.qey).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QEM"), (mppClient.get.raw.qem).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QED"), (mppClient.get.raw.qed).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QLT"), (mppClient.get.raw.qt).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QLY"), (mppClient.get.raw.qly).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QLM"), (mppClient.get.raw.qlm).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QLD"), (mppClient.get.raw.qld).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QPI"), (mppClient.get.raw.qpi).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QMOD"), (mppClient.get.raw.qmod).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QALL"), (mppClient.get.raw.qall).c_str());
-    mqttclient.publish(topicBuilder(buff, "RAW/QMN"), (mppClient.get.raw.qmn).c_str());
+    mqttclient.publish(topicBuilder(buff, "RAW/Q1"), (mppClient.get.raw.q1).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QPIGS"), (mppClient.get.raw.qpigs).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QPIGS2"), (mppClient.get.raw.qpigs2).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QPIRI"), (mppClient.get.raw.qpiri).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QT"), (mppClient.get.raw.qt).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QET"), (mppClient.get.raw.qet).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QEY"), (mppClient.get.raw.qey).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QEM"), (mppClient.get.raw.qem).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QED"), (mppClient.get.raw.qed).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QLT"), (mppClient.get.raw.qt).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QLY"), (mppClient.get.raw.qly).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QLM"), (mppClient.get.raw.qlm).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QLD"), (mppClient.get.raw.qld).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QPI"), (mppClient.get.raw.qpi).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QMOD"), (mppClient.get.raw.qmod).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QALL"), (mppClient.get.raw.qall).c_str(), true);
+    mqttclient.publish(topicBuilder(buff, "RAW/QMN"), (mppClient.get.raw.qmn).c_str(), true);
   }
   else
   {
-    mqttclient.beginPublish(topicBuilder(buff, "Data"), measureJson(Json), false);
+    mqttclient.beginPublish(topicBuilder(buff, "Data"), measureJson(Json), true);
     serializeJson(Json, mqttclient);
     mqttclient.endPublish();
   }
   mqttclient.publish(topicBuilder(buff, "Alive"), "true", true); // LWT online message must be retained!
-  mqttclient.publish(topicBuilder(buff, "EspData/Wifi_RSSI"), String(WiFi.RSSI()).c_str());
+  mqttclient.publish(topicBuilder(buff, "EspData/Wifi_RSSI"), String(WiFi.RSSI()).c_str(), true);
   writeLog("Data sent to MQTT");
   firstPublish = true;
 
@@ -654,11 +654,13 @@ bool sendHaDiscovery()
       haPayLoad += "}";
       sprintf(topBuff, "homeassistant/sensor/%s/%s/config", settings.data.mqttTopic, haStaticDescriptor[i][0]); // build the topic
       mqttclient.beginPublish(topBuff, haPayLoad.length(), true);
-      for (size_t i = 0; i < haPayLoad.length(); i++)
+      for (size_t j = 0; j < haPayLoad.length(); j++)
       {
-        mqttclient.write(haPayLoad[i]);
+        mqttclient.write(haPayLoad[j]);
       }
       mqttclient.endPublish();
+      delay(50); // Small delay to prevent buffer overflow
+      mqttclient.loop(); // Process MQTT queue
     }
   }
 
@@ -682,13 +684,16 @@ bool sendHaDiscovery()
       haPayLoad += "}";
       sprintf(topBuff, "homeassistant/sensor/%s/%s/config", settings.data.mqttTopic, haLiveDescriptor[i][0]); // build the topic
       mqttclient.beginPublish(topBuff, haPayLoad.length(), true);
-      for (size_t i = 0; i < haPayLoad.length(); i++)
+      for (size_t j = 0; j < haPayLoad.length(); j++)
       {
-        mqttclient.write(haPayLoad[i]);
+        mqttclient.write(haPayLoad[j]);
       }
       mqttclient.endPublish();
+      delay(50); // Small delay to prevent buffer overflow
+      mqttclient.loop(); // Process MQTT queue
     }
   }
+  writeLog("HA Discovery sent");
   return true;
 }
 
