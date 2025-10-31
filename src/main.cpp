@@ -42,6 +42,7 @@ bool askInverterOnce = false;
 bool workerCanRun = true;
 bool publishFirst = false;
 bool haDiscTrigger = false;
+bool haDiscoverySent = false; // Track if Discovery was already sent
 unsigned int jsonSize = 0;
 uint32_t bootcount = 0;
 String commandFromUser;
@@ -444,16 +445,18 @@ void loop()
       if (millis() - lastDebugLog > 30000)
       {
         lastDebugLog = millis();
-        writeLog("DEBUG: haDiscovery=%d, haDiscTrigger=%d, jsonSize=%d, currentSize=%d, MQTT=%d",
-                 settings.data.haDiscovery, haDiscTrigger, jsonSize, measureJson(Json), mqttclient.connected());
+        writeLog("DEBUG: haDiscovery=%d, haDiscTrigger=%d, haDiscoverySent=%d, jsonSize=%d, currentSize=%d, MQTT=%d",
+                 settings.data.haDiscovery, haDiscTrigger, haDiscoverySent, jsonSize, measureJson(Json), mqttclient.connected());
       }
 
-      if ((haDiscTrigger || settings.data.haDiscovery) && measureJson(Json) > 0 && measureJson(Json) != jsonSize)
+      // Send Discovery only once, or when manually triggered
+      if ((haDiscTrigger || (settings.data.haDiscovery && !haDiscoverySent)) && measureJson(Json) > 0)
       {
-        writeLog("Attempting to send HA Discovery... jsonSize: %d, currentSize: %d", jsonSize, measureJson(Json));
+        writeLog("Attempting to send HA Discovery...");
         if (sendHaDiscovery())
         {
           haDiscTrigger = false;
+          haDiscoverySent = true; // Mark as sent
           jsonSize = measureJson(Json);
           writeLog("HA Discovery completed successfully");
         }
