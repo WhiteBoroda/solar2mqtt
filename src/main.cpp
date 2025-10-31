@@ -643,6 +643,20 @@ bool sendHaDiscovery()
   }
 
   writeLog("HA Discovery: staticData keys: %d, liveData keys: %d", staticData.size(), liveData.size());
+
+  // Check if we have enough data from inverter
+  if (staticData.size() < 10)
+  {
+    writeLog("HA Discovery: SKIPPED - waiting for more static data (need at least 10 keys, have %d)", staticData.size());
+    return false;
+  }
+
+  if (liveData.size() < 10)
+  {
+    writeLog("HA Discovery: SKIPPED - waiting for more live data (need at least 10 keys, have %d)", liveData.size());
+    return false;
+  }
+
   writeLog("HA Discovery: Device_Model = '%s'", staticData["Device_Model"].as<String>().c_str());
 
   String deviceModel = staticData.containsKey("Device_Model") ? staticData["Device_Model"].as<String>() : "Unknown";
