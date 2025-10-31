@@ -106,8 +106,10 @@ bool PI_Serial::PIXX_QPIRI()
     {
       return false;
     }
+    // Fixed: increased upper limit from 105 to 150 to support longer QPIRI responses
+    // Some inverters return ~113 chars which was being rejected
     if (commandAnswer.length() > 80 &&
-        commandAnswer.length() < 105)
+        commandAnswer.length() < 150)
     {
 
       byte protocolNum = 0;
@@ -233,8 +235,10 @@ bool PI_Serial::PIXX_QPIRI()
     {
       return false;
     }
+    // Fixed: increased upper limit from 105 to 150 to support longer QPIRI responses
+    // Some inverters return ~113 chars which was being rejected
     if (commandAnswer.length() > 80 &&
-        commandAnswer.length() < 105)
+        commandAnswer.length() < 150)
     {
       String strs[30];
       // Split the string into substrings
