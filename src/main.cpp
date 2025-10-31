@@ -648,7 +648,7 @@ bool sendHaDiscovery()
   if (staticData.size() > 0)
   {
     String keys = "";
-    for (JsonPair kv : staticData.as<JsonObject>())
+    for (JsonPair kv : staticData)
     {
       keys += kv.key().c_str();
       keys += ", ";
